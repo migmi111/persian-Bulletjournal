@@ -20,7 +20,7 @@ body {
 
 /* صفحه اصلی */
 .journal {
-   background: white;
+  background: white;
   padding: 20px 30px;
   border-radius: 15px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -44,14 +44,14 @@ body {
   font-size: 24px;
   color: #521d67;
   margin-bottom: 10px;
-  order: 1; 
+  order: 1;
 }
 
 .date-navigation {
   display: flex;
   flex-direction: column;
   align-items: center;
-  order: 2; 
+  order: 2;
 }
 
 #current-date {
@@ -680,7 +680,6 @@ body {
 
 
 
-
 /* فرم در مودال */
 #modal-task-form {
   display: flex;
@@ -767,7 +766,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  width: 300px; 
+  width: 300px;
   flex-shrink: 0;
 }
 
@@ -777,7 +776,7 @@ body {
   border-radius: 15px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   text-align: center;
-  flex: 1; 
+  flex: 1;
   min-width: 150px;
 }
 
@@ -873,9 +872,9 @@ body {
 
 .weekday {
   font-weight: bold;
-  background-color: #efeaf0; 
+  background-color: #efeaf0;
   cursor: default;
-  color: #444444; 
+  color: #444444;
 }
 
 .weekday:hover {
@@ -1009,9 +1008,36 @@ body {
 }
 
 /* استایل‌های واکنش‌گرا برای صفحه‌های کوچک */
+@media (max-width: 900px) {
+  body {
+    padding: 10px;
+  }
+
+  .main-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .journal {
+    width: 100%;
+    max-width: 100%;
+    padding: 15px;
+  }
+
+  .progress-container {
+    width: 100%;
+    max-width: 100%;
+    flex-direction: column;
+  }
+
+  .progress-card {
+    width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   body {
-    padding: 20px;
+    padding: 10px;
   }
   
   .main-container {
@@ -1025,12 +1051,11 @@ body {
   
   .progress-container {
     width: 100%;
-    flex-direction: row;
-    justify-content: space-between;
+    flex-direction: column;
   }
   
   .progress-card {
-    width: 48%;
+    width: 100%;
   }
   
   #task-form {
@@ -1111,9 +1136,9 @@ body {
   gap: 20px;
   align-items: flex-start;
   flex-direction: row;
-  position: relative; 
+  position: relative;
   min-height: 100vh;
-  padding-bottom: 70px; 
+  padding-bottom: 70px;
 }
 
 /* استایل برای پست پایین کانتینر */
@@ -1123,7 +1148,7 @@ body {
   line-height: 150%;
   border-top: 1px solid #eee;
   text-align: center;
-  position: absolute; 
+  position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
@@ -1132,8 +1157,8 @@ body {
   font-family: 'Courier New', Courier, Monaco, Consolas, monospace;
   font-size: 13px;
   color: #333;
-  direction: rtl; 
-  border-radius: 20px 20px 20px 20px; 
+  direction: rtl;
+  border-radius: 20px 20px 20px 20px;
   margin: 0 20px;
 }
 
@@ -1167,6 +1192,29 @@ body {
   color: #333333;
 }
 
+/* ریسپانسیو برای تبلت و موبایل */
+@media (max-width: 1024px) {
+  .main-container {
+    flex-direction: column;
+    padding-bottom: 60px;
+  }
+  
+  .journal {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
+  
+  .progress-container {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .progress-card {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+}
 
 @media (max-width: 968px) {
   .main-container {
@@ -1174,46 +1222,148 @@ body {
     padding-bottom: 60px;
   }
   
-  .post {
-    padding: 15px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 480px) {
-  .post {
-    padding: 12px;
-    font-size: 11px;
-  }
-}
-
-@media (max-width: 968px) {
-  .main-container {
-    flex-direction: column; 
+  .journal {
+    width: 100%;
+    margin-bottom: 20px;
   }
   
   .progress-container {
     width: 100%;
-    flex-direction: row; 
-    flex-wrap: wrap;
+    flex-direction: column;
   }
   
   .progress-card {
-    flex: 1;
-    min-width: 150px;
+    width: 100%;
+  }
+  
+  .post {
+    padding: 15px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 15px;
   }
   
   .journal {
+    padding: 15px;
     width: 100%;
   }
-}
-
-@media (max-width: 480px) {
+  
   .progress-container {
-    flex-direction: column; 
+    width: 100%;
+    flex-direction: column;
   }
   
   .progress-card {
     width: 100%;
+    margin-bottom: 15px;
+  }
+  
+  .habits-progress-container {
+    width: 100%;
+  }
+  
+  #task-form {
+    flex-direction: column;
+  }
+  
+  #task-input, #difficulty-select, #habit-end-date {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  #task-form button {
+    width: 100%;
+  }
+  .post {
+    padding: 12px;
+    font-size: 14px;
+    margin: 0 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
+  
+  .journal {
+    padding: 12px;
+  }
+  
+  .journal-header h1 {
+    font-size: 20px;
+  }
+  
+  #current-date {
+    font-size: 16px;
+  }
+  
+  .progress-card, .habits-progress-container {
+    padding: 15px;
+  }
+  
+  .progress-card h2 {
+    font-size: 15px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    padding: 15px;
+    margin: 10% auto;
+  }
+  
+  .calendar {
+    max-width: 100% !important;
+    padding: 10px !important;
+  }
+  
+  .calendar-day {
+    min-height: 35px;
+    font-size: 13px;
+  }
+  
+  .post {
+    padding: 12px;
+    font-size: 11px;
+    margin: 0 15px;
+  }
+}
+
+/* برای نمایشگرهای بسیار کوچک */
+@media (max-width: 320px) {
+  body {
+    padding: 5px;
+  }
+  
+  .journal {
+    padding: 10px;
+  }
+  
+  .journal-header h1 {
+    font-size: 18px;
+  }
+  
+  #current-date {
+    font-size: 14px;
+  }
+  
+  #calendar-link {
+    font-size: 13px;
+  }
+  
+  .task-item {
+    padding: 10px;
+  }
+  
+  .task-text {
+    font-size: 14px;
+  }
+  
+  .progress-text {
+    font-size: 16px;
   }
 }
