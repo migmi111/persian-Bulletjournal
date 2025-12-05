@@ -1214,6 +1214,10 @@ body {
     width: 100%;
     margin-bottom: 15px;
   }
+ .post {
+    padding: 15px;
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 968px) {
@@ -1367,3 +1371,4 @@ body {
     font-size: 16px;
   }
 }
+
