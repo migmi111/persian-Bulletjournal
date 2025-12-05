@@ -53,7 +53,11 @@ const taskSearch = document.getElementById("task-search");
 const clearSearchBtn = document.getElementById("clear-search");
 const searchResultsContainer = document.getElementById("search-results-container");
 
-// تنظیمات تقویم فارسی - شروع هفته از شنبه
+// ---------- PWA Installation ----------
+let deferredPrompt;
+const installButton = document.createElement('button');
+
+// ---------- تنظیمات تقویم فارسی - شروع هفته از شنبه ----------
 moment.updateLocale('fa', {
   week: {
     dow: 6, // شنبه اولین روز هفته
@@ -76,6 +80,177 @@ let calendarSettings = JSON.parse(localStorage.getItem("calendarSettings")) || {
 // متغیرهای نمودارها
 let todayChart = null;
 let weekChart = null;
+
+// ---------- تابع‌های PWA ----------
+
+// ایجاد دکمه نصب
+function createInstallButton() {
+  installButton.textContent = '📲 نصب برنامه';
+  installButton.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-family: 'DelbarBold', Arial, sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    display: none;
+  `;
+  
+  installButton.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('کاربر برنامه را نصب کرد');
+        installButton.style.display = 'none';
+        
+        // نمایش پیام تشکر
+        const thankYouMsg = document.createElement('div');
+        thankYouMsg.textContent = 'برنامه با موفقیت نصب شد!';
+        thankYouMsg.style.cssText = `
+          position: fixed;
+          bottom: 150px;
+          right: 20px;
+          background: #521d67;
+          color: white;
+          padding: 10px 15px;
+          border-radius: 10px;
+          font-family: 'DelbarBold', Arial, sans-serif;
+          z-index: 1000;
+        `;
+        document.body.appendChild(thankYouMsg);
+        setTimeout(() => thankYouMsg.remove(), 3000);
+      }
+      deferredPrompt = null;
+    }
+  });
+  
+  document.body.appendChild(installButton);
+}
+
+// ردیابی رویداد beforeinstallprompt
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // نمایش دکمه نصب بعد از 3 ثانیه
+  setTimeout(() => {
+    installButton.style.display = 'block';
+  }, 3000);
+  
+  // مخفی کردن دکمه بعد از نصب
+  window.addEventListener('appinstalled', () => {
+    installButton.style.display = 'none';
+    deferredPrompt = null;
+    console.log('PWA نصب شد');
+  });
+});
+
+// بررسی اگر برنامه از قبل نصب شده
+if (window.matchMedia('(display-mode: standalone)').matches || 
+    window.navigator.standalone === true) {
+  console.log('برنامه به عنوان PWA نصب شده است');
+  // می‌توانید استایل‌های خاص برای حالت نصب شده اعمال کنید
+}
+
+// ---------- Service Worker Registration ----------
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/persian-Bulletjournal/sw.js')
+      .then(registration => {
+        console.log('ServiceWorker ثبت شد با اسکوپ:', registration.scope);
+      })
+      .catch(error => {
+        console.log('ثبت ServiceWorker با خطا مواجه شد:', error);
+      });
+  });
+}
+
+// ---------- بهبود نوتیفیکیشن ----------
+function requestNotificationPermission() {
+  if (!("Notification" in window)) {
+    console.log("مرورگر از نوتیفیکیشن پشتیبانی نمی‌کند");
+    return;
+  }
+  
+  // اگر قبلاً مجوز داده شده
+  if (Notification.permission === "granted") {
+    console.log("مجوز نوتیفیکیشن قبلاً داده شده");
+    return;
+  }
+  
+  // اگر مجوز رد شده
+  if (Notification.permission === "denied") {
+    console.log("مجوز نوتیفیکیشن رد شده");
+    return;
+  }
+  
+  // درخواست مجوز با تأخیر برای تجربه بهتر کاربر
+  setTimeout(() => {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        console.log("مجوز نوتیفیکیشن داده شد");
+        
+        // نمایش یک نوتیفیکیشن خوش‌آمدگویی
+        setTimeout(() => {
+          if (tasks.length === 0) { // فقط اگر هیچ کاری وجود ندارد
+            new Notification("به BulletJournal خوش آمدید!", {
+              body: "یادآوری کارهای شما فعال شد. می‌توانید برنامه را نیز نصب کنید.",
+              icon: "icon.png",
+              tag: "welcome"
+            });
+          }
+        }, 1000);
+      }
+    });
+  }, 2000); // 2 ثانیه تأخیر
+}
+
+// تابع بهبودیافته نمایش نوتیفیکیشن
+function createNotification(task) {
+  if (!("Notification" in window)) {
+    return;
+  }
+  
+  if (Notification.permission !== "granted") {
+    requestNotificationPermission();
+    return;
+  }
+  
+  const reminderText = task.reminderTime === 0 ? "امروز" : 
+                      `${task.reminderTime} روز دیگر`;
+  
+  const notification = new Notification("📝 یادآوری کار", {
+    body: `کار "${task.text}" ${reminderText} موعد انجام دارد.`,
+    icon: "icon.png",
+    tag: task.id,
+    requireInteraction: true,
+    silent: false,
+    vibrate: [200, 100, 200],
+    badge: "icon.png"
+  });
+  
+  // وقتی روی نوتیفیکیشن کلیک شد
+  notification.onclick = function() {
+    window.focus();
+    showDayModal(task.date);
+    notification.close();
+  };
+  
+  // بسته شدن خودکار بعد از 10 ثانیه
+  setTimeout(() => {
+    notification.close();
+  }, 10000);
+}
+
+// ---------- توابع اصلی برنامه ----------
 
 // تابع برای تولید شناسه منحصر به فرد
 function generateId() {
@@ -162,7 +337,6 @@ function toggleHabitCompletion(habit, date) {
   }
   
   saveTasks();
-  // اضافه کردن رندر مجدد و آپدیت نمودارها
   renderTasks();
   updateAllProgressCharts();
 }
@@ -185,7 +359,6 @@ function renderTasks() {
     const taskDateMoment = moment(task.date, 'jYYYY/jMM/jDD');
     const todayMoment = moment(today, 'jYYYY/jMM/jDD');
     
-    // فقط تسک‌های آینده که انجام نشده‌اند یا تاریخشان بعد از امروز است
     return task.date > today && taskDateMoment.diff(todayMoment, 'days') <= 10;
   });
 
@@ -215,7 +388,6 @@ function createTaskElement(task, isUpcoming = false, isHabit = false) {
   const li = document.createElement("li");
   li.classList.add("task-item");
   
-  // برای عادت‌ها، وضعیت completion را بر اساس تاریخ امروز بررسی می‌کنیم
   if (isHabit && isHabitCompletedOnDate(task, today)) {
     li.classList.add("completed");
   } else if (!isHabit && task.completed) {
@@ -302,10 +474,8 @@ function createTaskElement(task, isUpcoming = false, isHabit = false) {
   // وقتی روی متن کلیک می‌کنیم -> وضعیت تغییر کنه
   taskText.addEventListener("click", () => {
     if (isHabit) {
-      // برای عادت‌ها، وضعیت را برای تاریخ امروز تغییر می‌دهیم
       toggleHabitCompletion(task, today);
     } else {
-      // برای کارهای معمولی
       const taskIndex = tasks.findIndex(t => t.id === task.id);
       if (taskIndex !== -1) {
         tasks[taskIndex].completed = !tasks[taskIndex].completed;
@@ -357,19 +527,16 @@ function showDeleteModal(task, taskDate) {
 function showDayModal(date) {
   currentModalDate = date;
   modalTaskDate.value = date;
-  // در تابع showDayModal، بعد از خط modalTaskDate.value = date;
-modalReminderCheckbox.checked = false;
-modalReminderContainer.style.display = "none";
+  modalReminderCheckbox.checked = false;
+  modalReminderContainer.style.display = "none";
+  
   const persianDate = moment(date, 'jYYYY/jMM/jDD').locale('fa').format('jYYYY/jMM/jDD');
   modalDateElement.textContent = `تسک‌های تاریخ ${persianDate}`;
   modalTaskList.innerHTML = "";
   
-  // فیلتر کردن تسک‌ها برای تاریخ انتخاب شده و عادت‌های فعال
   const dayTasks = tasks.filter(task => {
-    // اگر تسک برای این تاریخ است
     if (task.date === date) return true;
     
-    // اگر تسک یک عادت فعال است
     if (task.isHabit && task.habitEndDate) {
       const endDate = moment(task.habitEndDate, 'jYYYY/jMM/jDD');
       const selectedDate = moment(date, 'jYYYY/jMM/jDD');
@@ -434,7 +601,6 @@ function createModalTaskElement(task, date, isHabit) {
   const li = document.createElement("li");
   li.classList.add("task-item");
   
-  // برای عادت‌ها، وضعیت completion را بر اساس تاریخ مودال بررسی می‌کنیم
   if (isHabit && isHabitCompletedOnDate(task, date)) {
     li.classList.add("completed");
   } else if (!isHabit && task.completed) {
@@ -489,11 +655,9 @@ function createModalTaskElement(task, date, isHabit) {
   
   taskText.addEventListener("click", () => {
     if (isHabit) {
-      // برای عادت‌ها در مودال، وضعیت را برای تاریخ مودال تغییر می‌دهیم
       toggleHabitCompletion(task, date);
-      showDayModal(date); // رفرش مودال
+      showDayModal(date);
     } else {
-      // برای کارهای معمولی
       const taskIndex = tasks.findIndex(t => t.id === task.id);
       if (taskIndex !== -1) {
         tasks[taskIndex].completed = !tasks[taskIndex].completed;
@@ -517,7 +681,6 @@ function renderCalendar() {
   const endOfMonth = moment(currentCalendarDate).endOf('jMonth');
   const daysInMonth = endOfMonth.jDate();
   
-  // دریافت روز شروع هفته از تنظیمات یا استفاده از پیش‌فرض
   const monthKey = currentCalendarDate.format('jYYYY-jMM');
   const startDay = calendarSettings[monthKey] !== undefined ? 
                   calendarSettings[monthKey] : startOfMonth.day();
@@ -525,7 +688,6 @@ function renderCalendar() {
   currentMonthYearElement.textContent = currentCalendarDate.locale('fa').format('jMMMM jYYYY');
   calendarDaysElement.innerHTML = "";
   
-  // روزهای هفته - شروع از شنبه
   const weekdays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
   weekdays.forEach(day => {
     const dayElement = document.createElement("div");
@@ -534,29 +696,24 @@ function renderCalendar() {
     calendarDaysElement.appendChild(dayElement);
   });
   
-  // خانه‌های خالی قبل از شروع ماه
   for (let i = 0; i < startDay; i++) {
     const emptyDay = document.createElement("div");
     emptyDay.classList.add("calendar-day", "empty");
     calendarDaysElement.appendChild(emptyDay);
   }
   
-  // روزهای ماه
   for (let i = 1; i <= daysInMonth; i++) {
     const dayElement = document.createElement("div");
     dayElement.classList.add("calendar-day");
     
-    // ایجاد تاریخ صحیح برای هر روز
     const currentDate = moment(currentCalendarDate).startOf('jMonth').add(i - 1, 'days').format('jYYYY/jMM/jDD');
     
-    // بررسی اگر امروز است
     if (currentDate === today) {
       dayElement.classList.add("today");
     }
     
     dayElement.textContent = i;
     
-    // بررسی اگر تسک برای این روز وجود دارد
     const dayTasks = tasks.filter(task => task.date === currentDate);
     if (dayTasks.length > 0) {
       dayElement.classList.add("has-tasks");
@@ -564,7 +721,6 @@ function renderCalendar() {
       const tasksPreview = document.createElement("div");
       tasksPreview.classList.add("day-tasks");
       
-      // محدود کردن متن به 7 کاراکتر و اضافه کردن سه نقطه
       const taskText = dayTasks[0].text;
       tasksPreview.textContent = taskText.length > 7 
         ? taskText.substring(0, 7) + '...' 
@@ -573,7 +729,6 @@ function renderCalendar() {
       dayElement.appendChild(tasksPreview);
     }
     
-    // بررسی اگر تسک دارای یادآوری است
     const dayTasksWithReminder = tasks.filter(task => 
       task.date === currentDate && task.reminderEnabled
     );
@@ -639,7 +794,6 @@ function createProgressChart(canvasId, progress, color) {
 
 // تابع برای به‌روزرسانی نمودارهای پیشرفت
 function updateProgressCharts() {
-  // محاسبه پیشرفت امروز - شامل عادت‌های فعال
   const todayTasks = tasks.filter(task => 
     task.date === today || (task.isHabit && isHabitActive(task))
   );
@@ -654,10 +808,7 @@ function updateProgressCharts() {
   
   const todayProgress = todayTasks.length > 0 ? Math.round((completedToday / todayTasks.length) * 100) : 0;
   
-  // محاسبه پیشرفت هفته جاری (شنبه تا جمعه)
   const todayMoment = moment(today, 'jYYYY/jMM/jDD');
-  
-  // استفاده از startOf و endOf هفته با تنظیمات صحیح تقویم فارسی
   const weekStart = todayMoment.clone().startOf('week');
   const weekEnd = todayMoment.clone().endOf('week');
   
@@ -666,10 +817,8 @@ function updateProgressCharts() {
     
     const taskDate = moment(task.date, 'jYYYY/jMM/jDD');
     
-    // بررسی اینکه تسک در بازه هفته جاری قرار دارد
     const isInThisWeek = taskDate.isSameOrAfter(weekStart) && taskDate.isSameOrBefore(weekEnd);
     
-    // برای عادت‌ها، بررسی اینکه آیا در این هفته فعال هستند
     if (task.isHabit && task.habitEndDate) {
       const habitEndDate = moment(task.habitEndDate, 'jYYYY/jMM/jDD');
       const isHabitActiveInWeek = weekStart.isSameOrBefore(habitEndDate);
@@ -681,7 +830,6 @@ function updateProgressCharts() {
   
   const completedWeek = weekTasks.filter(task => {
     if (task.isHabit) {
-      // برای عادت‌ها، تعداد روزهای انجام شده در این هفته را محاسبه می‌کنیم
       if (!task.completedDates) return false;
       
       const completedInWeek = task.completedDates.filter(date => {
@@ -697,11 +845,9 @@ function updateProgressCharts() {
   
   const weekProgress = weekTasks.length > 0 ? Math.round((completedWeek / weekTasks.length) * 100) : 0;
   
-  // به‌روزرسانی متن پیشرفت
   document.getElementById('today-progress-text').textContent = `${todayProgress}%`;
   document.getElementById('week-progress-text').textContent = `${weekProgress}%`;
   
-  // به‌روزرسانی نمودارها
   if (todayChart) todayChart.destroy();
   if (weekChart) weekChart.destroy();
   
@@ -715,13 +861,8 @@ function calculateHabitProgress(habit) {
   const endDate = moment(habit.habitEndDate, 'jYYYY/jMM/jDD');
   const today = moment();
   
-  // تعداد کل روزهای عادت
   const totalDays = endDate.diff(startDate, 'days') + 1;
-  
-  // تعداد روزهای گذشته از شروع عادت
   const daysPassed = Math.min(today.diff(startDate, 'days') + 1, totalDays);
-  
-  // تعداد روزهای کامل شده (از لیست تاریخ‌های انجام شده)
   const daysCompleted = habit.completedDates ? habit.completedDates.length : 0;
   const progressPercentage = Math.round((daysCompleted / daysPassed) * 100);
   
@@ -740,7 +881,6 @@ function createHabitChartElement(habit, progress) {
   const chartItem = document.createElement('div');
   chartItem.classList.add('habit-chart-item');
   
-  // هدر عادت
   const habitHeader = document.createElement('div');
   habitHeader.classList.add('habit-chart-header');
   
@@ -755,7 +895,6 @@ function createHabitChartElement(habit, progress) {
   habitHeader.appendChild(habitName);
   habitHeader.appendChild(habitDates);
   
-  // آمار و اطلاعات
   const habitStats = document.createElement('div');
   habitStats.classList.add('habit-chart-stats');
   
@@ -774,7 +913,6 @@ function createHabitChartElement(habit, progress) {
   habitStats.appendChild(totalStats);
   habitStats.appendChild(percentageStats);
   
-  // نوار پیشرفت
   const habitProgressContainer = document.createElement('div');
   habitProgressContainer.classList.add('habit-chart-progress');
   
@@ -805,7 +943,6 @@ function updateHabitsProgressCharts() {
   const habitsChartsContainer = document.getElementById('habits-charts-container');
   habitsChartsContainer.innerHTML = '';
   
-  // فیلتر کردن عادت‌های فعال
   const activeHabits = tasks.filter(task => task.isHabit && isHabitActive(task));
   
   if (activeHabits.length === 0) {
@@ -820,7 +957,6 @@ function updateHabitsProgressCharts() {
     return;
   }
   
-  // ایجاد نمودار برای هر عادت
   activeHabits.forEach(habit => {
     const habitProgress = calculateHabitProgress(habit);
     const chartItem = createHabitChartElement(habit, habitProgress);
@@ -832,8 +968,10 @@ function updateHabitsProgressCharts() {
 function updateAllProgressCharts() {
   updateProgressCharts();
   updateHabitsProgressCharts();
-  renderTasks(); // اضافه کردن این خط برای رندر مجدد تسک‌ها
+  renderTasks();
 }
+
+// ---------- توابع یادآوری ----------
 
 // تابع برای بررسی و نمایش نوتیفیکیشن‌ها
 function checkAndShowReminders() {
@@ -845,14 +983,11 @@ function checkAndShowReminders() {
       const taskDate = moment(task.date, 'jYYYY/jMM/jDD');
       const daysDiff = taskDate.diff(now, 'days');
       
-      // بررسی آیا امروز زمان یادآوری است
-      const shouldRemind = (daysDiff === task.reminderTime) || 
-                          (daysDiff === 0 && task.reminderTime === 0);
-      
-      if (shouldRemind) {
+      // فقط برای کارهای آینده یادآوری بده (امروز و روزهای بعد)
+      if (daysDiff >= 0 && daysDiff <= task.reminderTime) {
         // بررسی آیا قبلاً این یادآوری نمایش داده شده
         if (!task.reminderShown || task.reminderShown !== todayFormatted) {
-          showNotification(task);
+          createNotification(task);
           
           // علامت گذاری که این یادآوری امروز نمایش داده شده
           const taskIndex = tasks.findIndex(t => t.id === task.id);
@@ -866,63 +1001,12 @@ function checkAndShowReminders() {
   });
 }
 
-// تابع برای نمایش نوتیفیکیشن
-function showNotification(task) {
-  // بررسی آیا مرورگر از نوتیفیکیشن دسکتاپ پشتیبانی می‌کند
-  if (!("Notification" in window)) {
-    alert("مرورگر شما از نوتیفیکیشن دسکتاپ پشتیبانی نمی‌کند");
-    return;
-  }
-  
-  // بررسی آیا قبلاً مجوز داده شده
-  if (Notification.permission === "granted") {
-    createNotification(task);
-  } else if (Notification.permission !== "denied") {
-    // درخواست مجوز
-    Notification.requestPermission().then(permission => {
-      if (permission === "granted") {
-        createNotification(task);
-      }
-    });
-  }
-}
-
-// تابع برای ایجاد نوتیفیکیشن
-function createNotification(task) {
-  const reminderText = task.reminderTime === 0 ? "امروز" : 
-                      `${task.reminderTime} روز دیگر`;
-  
-  // می‌توانید این ویژگی‌ها را به نوتیفیکیشن اضافه کنید:
-const notification = new Notification("یادآوری کار", {
-  body: `کار "${task.text}" ${reminderText} موعد انجام دارد.`,
-  icon: "icon.png", // آیکون محلی
-  badge: "icon.png", // نشان‌ک برای موبایل
-  image: "icon.png", // تصویر بزرگ (اختیاری)
-  vibrate: [200, 100, 200], // لرزش برای موبایل
-  tag: task.id,
-  renotify: true, // اگر نوتیفیکیشن تکراری بود، دوباره نمایش دهد
-  silent: false, // بدون صدا نباشد
-  requireInteraction: true, // تا زمانی که کاربر ببندد باقی بماند
-  data: { // داده‌های اضافی
-    taskId: task.id,
-    date: task.date
-  }
-});
-  
-  
-  // بسته شدن خودکار نوتیفیکیشن پس از 10 ثانیه
-  setTimeout(() => {
-    notification.close();
-  }, 10000);
-}
-
 // تابع برای بررسی روزانه یادآوری‌ها
 function setupDailyReminderCheck() {
-  // بررسی هر روز در ساعت مشخص (مثلاً 9 صبح)
   checkAndShowReminders();
   
-  // تنظیم تایمر برای بررسی روزانه
-  setInterval(checkAndShowReminders, 24 * 60 * 60 * 1000); // هر 24 ساعت
+  // بررسی هر 12 ساعت (برای تست)
+  setInterval(checkAndShowReminders, 12 * 60 * 60 * 1000);
 }
 
 // نمایش/پنهان کردن بخش یادآوری بر اساس تاریخ تسک
@@ -932,11 +1016,42 @@ difficultySelect.addEventListener('change', toggleReminderSection);
 modalTaskInput.addEventListener('change', toggleModalReminderSection);
 modalDifficultySelect.addEventListener('change', toggleModalReminderSection);
 
-// اضافه کردن event listener برای تغییرات در فیلد تاریخ
 taskInput.addEventListener('input', toggleReminderSection);
 modalTaskInput.addEventListener('input', toggleModalReminderSection);
 
-// ---------- تابع‌های جستجوی پیشرفته ----------
+function toggleReminderSection() {
+  const taskDateText = taskInput.value;
+  
+  if (!taskDateText || !isValidJalaliDate(taskDateText)) {
+    reminderContainer.style.display = 'none';
+    reminderCheckbox.checked = false;
+    return;
+  }
+  
+  const taskDate = moment(taskDateText, 'jYYYY/jMM/jDD');
+  const today = moment();
+  
+  if (taskDate.isAfter(today, 'day')) {
+    reminderContainer.style.display = 'block';
+  } else {
+    reminderContainer.style.display = 'none';
+    reminderCheckbox.checked = false;
+  }
+}
+
+function toggleModalReminderSection() {
+  const taskDate = moment(modalTaskInput.value, 'jYYYY/jMM/jDD', true);
+  const today = moment();
+  
+  if (taskDate.isValid() && taskDate.isAfter(today)) {
+    modalReminderContainer.style.display = 'block';
+  } else {
+    modalReminderContainer.style.display = 'none';
+    modalReminderCheckbox.checked = false;
+  }
+}
+
+// ---------- توابع جستجو ----------
 
 // تابع جستجو در تمام تسک‌ها و تقویم
 function searchAllTasks(searchTerm) {
@@ -947,7 +1062,6 @@ function searchAllTasks(searchTerm) {
   const searchTermLower = searchTerm.toLowerCase();
   const results = [];
   
-  // جستجو در تمام تسک‌ها
   tasks.forEach(task => {
     if (task.text.toLowerCase().includes(searchTermLower)) {
       results.push({
@@ -968,7 +1082,6 @@ function createSearchResultElement(result) {
   
   const task = result.task;
   
-  // نقطه رنگی سطح سختی
   const difficultyDot = document.createElement('div');
   difficultyDot.classList.add('search-result-difficulty');
   
@@ -989,7 +1102,6 @@ function createSearchResultElement(result) {
     }
   }
   
-  // اطلاعات تسک
   const infoDiv = document.createElement('div');
   infoDiv.classList.add('search-result-info');
   
@@ -1000,12 +1112,10 @@ function createSearchResultElement(result) {
   const detailsDiv = document.createElement('div');
   detailsDiv.classList.add('search-result-details');
   
-  // تاریخ
   const dateSpan = document.createElement('span');
   dateSpan.classList.add('search-result-date');
   dateSpan.textContent = task.date;
   
-  // وضعیت
   const statusSpan = document.createElement('span');
   
   if (task.isHabit) {
@@ -1038,13 +1148,10 @@ function createSearchResultElement(result) {
   div.appendChild(difficultyDot);
   div.appendChild(infoDiv);
   
-  // کلیک برای نمایش در تقویم
   div.addEventListener('click', () => {
     if (calendarModal.style.display === 'block') {
-      // اگر تقویم باز است، روز مربوطه را هایلایت کن
       highlightCalendarDay(task.date);
     } else {
-      // اگر تقویم باز نیست، مودال روز را نشان بده
       showDayModal(task.date);
       dayModal.style.display = 'block';
     }
@@ -1055,12 +1162,10 @@ function createSearchResultElement(result) {
 
 // تابع برای هایلایت کردن روز در تقویم
 function highlightCalendarDay(date) {
-  // پاک کردن هایلایت قبلی
   document.querySelectorAll('.calendar-day.search-highlight').forEach(day => {
     day.classList.remove('search-highlight');
   });
   
-  // پیدا کردن روز مربوطه در تقویم
   const calendarDays = document.querySelectorAll('.calendar-day:not(.weekday):not(.empty)');
   calendarDays.forEach(day => {
     const dayNumber = parseInt(day.textContent);
@@ -1089,13 +1194,11 @@ function displaySearchResults(results, searchTerm) {
     return;
   }
   
-  // نمایش اطلاعات تعداد نتایج
   const infoDiv = document.createElement('div');
   infoDiv.classList.add('search-results-info');
   infoDiv.textContent = `${results.length} نتیجه برای "${searchTerm}"`;
   searchResultsContainer.appendChild(infoDiv);
   
-  // نمایش هر نتیجه
   results.forEach(result => {
     const resultElement = createSearchResultElement(result);
     searchResultsContainer.appendChild(resultElement);
@@ -1106,7 +1209,6 @@ function displaySearchResults(results, searchTerm) {
 
 // تابع اصلی جستجو
 function performSearch(searchTerm) {
-  // هایلایت تسک‌های صفحه اصلی
   const allTaskItems = document.querySelectorAll('.task-item');
   allTaskItems.forEach(item => {
     const taskText = item.querySelector('.task-text').textContent.toLowerCase();
@@ -1117,7 +1219,6 @@ function performSearch(searchTerm) {
     }
   });
   
-  // هایلایت در تقویم اگر باز است
   if (calendarModal.style.display === 'block') {
     document.querySelectorAll('.calendar-day:not(.weekday):not(.empty)').forEach(day => {
       const tasksPreview = day.querySelector('.day-tasks');
@@ -1132,10 +1233,11 @@ function performSearch(searchTerm) {
     });
   }
   
-  // جستجو در تمام تسک‌ها
   const searchResults = searchAllTasks(searchTerm);
   displaySearchResults(searchResults, searchTerm);
 }
+
+// ---------- Event Listeners ----------
 
 // Event listener برای جستجو
 taskSearch.addEventListener('input', (e) => {
@@ -1147,12 +1249,10 @@ taskSearch.addEventListener('input', (e) => {
   } else {
     clearSearchBtn.style.display = 'none';
     
-    // پاک کردن هایلایت‌ها
     document.querySelectorAll('.search-highlight').forEach(item => {
       item.classList.remove('search-highlight');
     });
     
-    // پنهان کردن نتایج
     searchResultsContainer.style.display = 'none';
     searchResultsContainer.innerHTML = '';
   }
@@ -1163,12 +1263,10 @@ clearSearchBtn.addEventListener('click', () => {
   taskSearch.value = '';
   clearSearchBtn.style.display = 'none';
   
-  // پاک کردن هایلایت‌ها
   document.querySelectorAll('.search-highlight').forEach(item => {
     item.classList.remove('search-highlight');
   });
   
-  // پنهان کردن نتایج
   searchResultsContainer.style.display = 'none';
   searchResultsContainer.innerHTML = '';
 });
@@ -1199,7 +1297,6 @@ taskForm.addEventListener("submit", (e) => {
   const isHabit = habitCheckbox.checked;
   const habitEndDate = habitEndDateInput.value;
   
-  // اعتبارسنجی تاریخ پایان برای عادت
   if (isHabit && (!habitEndDate || !isValidJalaliDate(habitEndDate))) {
     alert("لطفاً تاریخ پایان معتبری برای عادت وارد کنید.");
     return;
@@ -1214,7 +1311,6 @@ taskForm.addEventListener("submit", (e) => {
     isHabit: isHabit,
     habitEndDate: isHabit ? habitEndDate : null,
     completedDates: isHabit ? [] : null,
-    // اصلاح شده: ذخیره تنظیمات یادآوری
     reminderEnabled: reminderCheckbox.checked,
     reminderTime: reminderCheckbox.checked ? parseInt(reminderTimeSelect.value) : 0,
     reminderShown: null
@@ -1225,7 +1321,6 @@ taskForm.addEventListener("submit", (e) => {
   renderTasks();
   updateAllProgressCharts();
   
-  // بازنشانی فرم
   taskInput.value = "";
   habitCheckbox.checked = false;
   habitEndDateContainer.style.display = "none";
@@ -1234,42 +1329,6 @@ taskForm.addEventListener("submit", (e) => {
   reminderContainer.style.display = "none";
 });
 
-function toggleReminderSection() {
-  // این تابع باید بر اساس تاریخ وارد شده تصمیم بگیرد که بخش یادآوری نمایش داده شود یا نه
-  const taskDateText = taskInput.value;
-  
-  // اگر تاریخ وارد شده معتبر نیست یا امروز/گذشته است، یادآوری نمایش داده نشود
-  if (!taskDateText || !isValidJalaliDate(taskDateText)) {
-    reminderContainer.style.display = 'none';
-    reminderCheckbox.checked = false;
-    return;
-  }
-  
-  const taskDate = moment(taskDateText, 'jYYYY/jMM/jDD');
-  const today = moment();
-  
-  // فقط برای تاریخ‌های آینده یادآوری نمایش داده شود
-  if (taskDate.isAfter(today, 'day')) {
-    reminderContainer.style.display = 'block';
-  } else {
-    reminderContainer.style.display = 'none';
-    reminderCheckbox.checked = false;
-  }
-}
-
-function toggleModalReminderSection() {
-  const taskDate = moment(modalTaskInput.value, 'jYYYY/jMM/jDD', true);
-  const today = moment();
-  
-  if (taskDate.isValid() && taskDate.isAfter(today)) {
-    modalReminderContainer.style.display = 'block';
-  } else {
-    modalReminderContainer.style.display = 'none';
-    modalReminderCheckbox.checked = false;
-  }
-}
-
-// وقتی فرم مودال سابمیت میشه
 modalTaskForm.addEventListener("submit", (e) => {
   e.preventDefault();
   
@@ -1282,7 +1341,6 @@ modalTaskForm.addEventListener("submit", (e) => {
     isHabit: false,
     habitEndDate: null,
     completedDates: null,
-    // اضافه کردن فیلدهای یادآوری
     reminderEnabled: modalReminderCheckbox.checked,
     reminderTime: modalReminderCheckbox.checked ? parseInt(modalReminderTimeSelect.value) : 0,
     reminderShown: null
@@ -1315,7 +1373,6 @@ editTaskForm.addEventListener("submit", (e) => {
   
   tasks[taskIndex].difficulty = editDifficultySelect.value;
   
-  // اگر عادت است، completedDates را حفظ کنیم
   if (tasks[taskIndex].isHabit && !tasks[taskIndex].completedDates) {
     tasks[taskIndex].completedDates = [];
   }
@@ -1324,7 +1381,6 @@ editTaskForm.addEventListener("submit", (e) => {
   renderTasks();
   updateAllProgressCharts();
   
-  // به‌روزرسانی مودال روز اگر باز است
   if (dayModal.style.display === "block") {
     showDayModal(newDate);
   }
@@ -1342,7 +1398,6 @@ confirmDeleteBtn.addEventListener("click", () => {
   renderTasks();
   updateAllProgressCharts();
   
-  // به‌روزرسانی مودال روز اگر باز است
   if (dayModal.style.display === "block") {
     showDayModal(currentModalDate);
   }
@@ -1358,7 +1413,6 @@ calendarLink.addEventListener("click", (e) => {
   calendarModal.style.display = "block";
   dayModal.style.display = "none";
   
-  // پاک کردن نتایج جستجو هنگام باز شدن تقویم
   searchResultsContainer.style.display = 'none';
 });
 
@@ -1367,7 +1421,6 @@ prevMonthButton.addEventListener("click", () => {
   currentCalendarDate = moment(currentCalendarDate).subtract(1, 'jMonth');
   renderCalendar();
   
-  // اگر جستجو فعال است، دوباره هایلایت کن
   if (taskSearch.value.trim()) {
     performSearch(taskSearch.value);
   }
@@ -1378,7 +1431,6 @@ nextMonthButton.addEventListener("click", () => {
   currentCalendarDate = moment(currentCalendarDate).add(1, 'jMonth');
   renderCalendar();
   
-  // اگر جستجو فعال است، دوباره هایلایت کن
   if (taskSearch.value.trim()) {
     performSearch(taskSearch.value);
   }
@@ -1395,15 +1447,12 @@ weekdaySelectorButtons.forEach(button => {
     const selectedDay = parseInt(button.getAttribute('data-day'));
     const monthKey = currentCalendarDate.format('jYYYY-jMM');
     
-    // ذخیره تنظیمات برای این ماه
     calendarSettings[monthKey] = selectedDay;
     saveCalendarSettings();
     
-    // بستن مودال و رندر مجدد تقویم
     fixCalendarModal.style.display = "none";
     renderCalendar();
     
-    // اگر جستجو فعال است، دوباره هایلایت کن
     if (taskSearch.value.trim()) {
       performSearch(taskSearch.value);
     }
@@ -1448,10 +1497,59 @@ window.addEventListener("click", (e) => {
   }
 });
 
-// بار اول که صفحه لود میشه
+// ---------- Initialize ----------
 document.addEventListener("DOMContentLoaded", () => {
   renderCurrentDate();
   renderTasks();
   updateAllProgressCharts();
   setupDailyReminderCheck();
+  createInstallButton();
+  requestNotificationPermission();
+  
+  // نمایش پیام خوش‌آمدگویی
+  setTimeout(() => {
+    if (tasks.length === 0) {
+      const welcomeMsg = document.createElement('div');
+      welcomeMsg.innerHTML = `
+        <div style="
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          padding: 20px;
+          border-radius: 15px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+          z-index: 1001;
+          max-width: 300px;
+          text-align: center;
+          font-family: 'DelbarBold', Arial, sans-serif;
+        ">
+          <h3 style="color: #521d67; margin-bottom: 10px;">به BulletJournal خوش آمدید! ✨</h3>
+          <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+            برای نصب برنامه روی دکمه نصب کلیک کنید
+          </p>
+          <button onclick="this.parentElement.style.display='none'" style="
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'DelbarBold', Arial, sans-serif;
+          ">
+            فهمیدم
+          </button>
+        </div>
+      `;
+      document.body.appendChild(welcomeMsg);
+      
+      // خودکار بسته شدن بعد از 10 ثانیه
+      setTimeout(() => {
+        if (welcomeMsg.parentElement) {
+          welcomeMsg.style.display = 'none';
+        }
+      }, 10000);
+    }
+  }, 1000);
 });
