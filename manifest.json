@@ -1,16 +1,29 @@
+
 {
   "name": "My BulletJournal",
   "short_name": "BulletJournal",
   "description": "برنامه مدیریت کارهای روزانه و عادت‌ها",
   "lang": "fa",
   "dir": "rtl",
-  "start_url": "/persian-Bulletjournal/",
-  "scope": "/persian-Bulletjournal/",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#521d67",
   "background_color": "#f7f5f0",
   "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "icons/icon-72.png",
       "sizes": "72x72",
